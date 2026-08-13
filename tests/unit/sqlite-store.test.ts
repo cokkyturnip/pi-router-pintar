@@ -136,7 +136,7 @@ describe('SqliteStore', () => {
       store2.close();
     });
 
-    it('migrates to schema v5 with outcomes table, dataset privacy columns, and context_overflow pin_reason', () => {
+    it('migrates to schema v6 with outcomes table, dataset privacy columns, and complexity pin reasons', () => {
       const dir = mkdtempSync(join(tmpdir(), 'sqlite-store-'));
       const dbPath = join(dir, 'router.db');
       let store: SqliteStore | undefined;
@@ -147,7 +147,7 @@ describe('SqliteStore', () => {
         db = new Database(dbPath);
 
         const version = db.pragma('user_version', { simple: true });
-        expect(version).toBe(5);
+        expect(version).toBe(6);
 
         const datasetColumns = db.prepare('PRAGMA table_info(dataset)').all() as Array<{ name: string }>;
         const datasetColumnNames = datasetColumns.map((column) => column.name);
@@ -172,6 +172,90 @@ describe('SqliteStore', () => {
       } finally {
         store?.close();
         db?.close();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('persists complexity pin reasons after migration/reopen', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'sqlite-store-'));
+      const dbPath = join(dir, 'router.db');
+      const first = new SqliteStore({ dbPath, models: TEST_MODELS });
+      try {
+        await first.putSessionPin(makePin({ session_id: 'upgrade', pin_reason: 'complexity_upgrade' }));
+        await first.putSessionPin(makePin({ session_id: 'downgrade', pin_reason: 'complexity_downgrade' }));
+      } finally {
+        first.close();
+      }
+
+      const reopened = new SqliteStore({ dbPath, models: TEST_MODELS });
+      try {
+        expect((await reopened.getSessionPin('upgrade'))?.pin_reason).toBe('complexity_upgrade');
+        expect((await reopened.getSessionPin('downgrade'))?.pin_reason).toBe('complexity_downgrade');
+      } finally {
+        reopened.close();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('preserves existing pins when migrating a v5 database to v6', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'sqlite-store-'));
+      const dbPath = join(dir, 'router.db');
+
+      // Build the full schema with a real store, then downgrade the pins table
+      // to its v5 shape so we can simulate a genuine v5 database.
+      const builder = new SqliteStore({ dbPath, models: TEST_MODELS });
+      builder.close();
+
+      const db = new Database(dbPath);
+      try {
+        db.exec('DROP TABLE pins;');
+        db.exec(`
+          CREATE TABLE pins (
+            session_id TEXT PRIMARY KEY,
+            pinned_model_id TEXT NOT NULL,
+            pin_reason TEXT NOT NULL CHECK (pin_reason IN ('initial','user_forced','loop_escalation','compaction','cache_economics','context_overflow')),
+            has_ever_switched INTEGER NOT NULL DEFAULT 0,
+            consecutive_upstream_errors INTEGER NOT NULL DEFAULT 0,
+            consecutive_tool_failures INTEGER NOT NULL DEFAULT 0,
+            last_tool_failure_signature TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+        `);
+        db.prepare(
+          `INSERT INTO pins (session_id, pinned_model_id, pin_reason, has_ever_switched, consecutive_upstream_errors, consecutive_tool_failures, last_tool_failure_signature, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(
+          'legacy-1',
+          'claude-sonnet',
+          'cache_economics',
+          0,
+          0,
+          0,
+          null,
+          '2026-07-02T00:00:00.000Z',
+          '2026-07-02T00:00:00.000Z',
+        );
+        db.pragma('user_version = 5');
+      } finally {
+        db.close();
+      }
+
+      const store = new SqliteStore({ dbPath, models: TEST_MODELS });
+      try {
+        const version = new Database(dbPath).pragma('user_version', { simple: true });
+        expect(version).toBe(6);
+      } finally {
+        store.close();
+      }
+
+      const reopened = new SqliteStore({ dbPath, models: TEST_MODELS });
+      try {
+        const restored = await reopened.getSessionPin('legacy-1');
+        expect(restored?.pin_reason).toBe('cache_economics');
+        expect(restored?.pinned_model_id).toBe('claude-sonnet');
+      } finally {
+        reopened.close();
         rmSync(dir, { recursive: true, force: true });
       }
     });
