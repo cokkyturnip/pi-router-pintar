@@ -130,6 +130,8 @@ function registryModelsToFleetInput(models: readonly Model<Api>[]) {
       cacheRead: model.cost.cacheRead,
       cacheWrite: model.cost.cacheWrite,
     },
+    contextWindow: model.contextWindow,
+    maxTokens: model.maxTokens,
   }));
 }
 

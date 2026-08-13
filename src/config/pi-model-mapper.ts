@@ -194,6 +194,10 @@ export interface PiModelInput {
   readonly id: string;
   readonly name?: string;
   readonly cost?: PiRegistryCost;
+  /** Pi registry context window in tokens. */
+  readonly contextWindow?: number;
+  /** Pi registry maximum generated tokens. */
+  readonly maxTokens?: number;
 }
 
 interface ModelPatternRule {
@@ -385,6 +389,35 @@ function buildProfile(
   const provider = input.provider.trim();
   const registryKey = `${normalizeProvider(provider)}/${input.id}`;
 
+  const registryRates =
+    input.cost !== undefined &&
+    (input.cost.input !== 0 || input.cost.output !== 0)
+      ? {
+          input_rate_per_1m: input.cost.input * 1_000_000,
+          output_rate_per_1m: input.cost.output * 1_000_000,
+        }
+      : {};
+  const limits =
+    (input.contextWindow !== undefined &&
+      Number.isFinite(input.contextWindow) &&
+      input.contextWindow > 0) ||
+    (input.maxTokens !== undefined &&
+      Number.isFinite(input.maxTokens) &&
+      input.maxTokens > 0)
+      ? {
+          ...(input.contextWindow !== undefined &&
+          Number.isFinite(input.contextWindow) &&
+          input.contextWindow > 0
+            ? { max_input_tokens: input.contextWindow }
+            : {}),
+          ...(input.maxTokens !== undefined &&
+          Number.isFinite(input.maxTokens) &&
+          input.maxTokens > 0
+            ? { max_output_tokens: input.maxTokens }
+            : {}),
+        }
+      : undefined;
+
   const profile: MappedModelProfile = {
     id: input.id,
     tier: defaults.tier,
@@ -393,10 +426,12 @@ function buildProfile(
     pricing: {
       registry_key: defaults.pricing.registry_key ?? registryKey,
       fallback_cost_per_1m: resolveFallbackCost(input, defaults),
+      ...registryRates,
       ...(defaults.pricing.quota_cost_per_1m !== undefined
         ? { quota_cost_per_1m: defaults.pricing.quota_cost_per_1m }
         : {}),
     },
+    ...(limits !== undefined ? { limits } : {}),
     capability_source,
   };
 
