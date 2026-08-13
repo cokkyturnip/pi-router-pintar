@@ -80,6 +80,7 @@ function makeRegistryModel(
   id: string,
   cost?: Model<Api>['cost'],
   provider = 'openai',
+  limits?: { contextWindow?: number; maxTokens?: number },
 ): Model<Api> {
   return {
     name: id,
@@ -88,8 +89,8 @@ function makeRegistryModel(
     reasoning: false,
     input: ['text'],
     cost: cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128_000,
-    maxTokens: 4096,
+    contextWindow: limits?.contextWindow ?? 128_000,
+    maxTokens: limits?.maxTokens ?? 16_384,
     provider,
     id,
   };
@@ -393,9 +394,11 @@ describe('discoverFleet pricing integration (SP-045)', () => {
 });
 
 describe('discoverFleet registry cost pass-through (SP-046)', () => {
+  // Pi `Model.cost` is USD per 1M tokens; these values mirror real Pi
+  // registry rates so the boundary conversion is exercised.
   const registryCost = {
-    input: 1.5e-7,
-    output: 6e-7,
+    input: 0.15,
+    output: 0.6,
     cacheRead: 0,
     cacheWrite: 0,
   };
@@ -426,6 +429,34 @@ describe('discoverFleet registry cost pass-through (SP-046)', () => {
 
     expect(fleet).toHaveLength(1);
     expect(fleet[0]?.pricing.fallback_cost_per_1m).toBeCloseTo(0.375, 5);
+  });
+
+  it('converts Pi per-1M cost into component rates and limits', async () => {
+    const store = new MemoryStore([]);
+    const registry = createMockRegistry([
+      makeRegistryModel(
+        'deepseek-v4-flash',
+        {
+          input: 0.07,
+          output: 0.14,
+          cacheRead: 0.0014,
+          cacheWrite: 0,
+        },
+        'opencode-go',
+        { contextWindow: 1_000_000, maxTokens: 384_000 },
+      ),
+    ]);
+
+    const { fleet } = await discoverFleet(registry, 'all', '/tmp', store);
+
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.pricing.input_rate_per_1m).toBeCloseTo(0.07, 6);
+    expect(fleet[0]?.pricing.output_rate_per_1m).toBeCloseTo(0.14, 6);
+    expect(fleet[0]?.pricing.fallback_cost_per_1m).toBeCloseTo(0.105, 6);
+    expect(fleet[0]?.limits).toEqual({
+      max_input_tokens: 1_000_000,
+      max_output_tokens: 384_000,
+    });
   });
 });
 

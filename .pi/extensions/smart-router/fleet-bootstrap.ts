@@ -124,11 +124,13 @@ function registryModelsToFleetInput(models: readonly Model<Api>[]) {
     provider: model.provider,
     id: model.id,
     ...(model.name !== undefined ? { name: model.name } : {}),
+    // Pi `Model.cost` is USD per 1M tokens; the mapper consumes per-token
+    // rates, so convert at the registry boundary (SP-046 unit fix).
     cost: {
-      input: model.cost.input,
-      output: model.cost.output,
-      cacheRead: model.cost.cacheRead,
-      cacheWrite: model.cost.cacheWrite,
+      input: model.cost.input / 1_000_000,
+      output: model.cost.output / 1_000_000,
+      cacheRead: model.cost.cacheRead / 1_000_000,
+      cacheWrite: model.cost.cacheWrite / 1_000_000,
     },
     contextWindow: model.contextWindow,
     maxTokens: model.maxTokens,
