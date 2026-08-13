@@ -437,6 +437,22 @@ describe('mapPiModelToProfile', () => {
       });
     });
 
+    it('passes Pi limits through for an otherwise unknown economical model', () => {
+      const piModel = makeInput({
+        provider: 'opencode-go',
+        id: 'deepseek-v4-flash',
+        contextWindow: 1_000_000,
+        maxTokens: 384_000,
+      });
+      const profile = mapPiModelToProfile(piModel);
+
+      expect(profile.tier).toBe('economical-cloud');
+      expect(profile.limits).toEqual({
+        max_input_tokens: piModel.contextWindow,
+        max_output_tokens: piModel.maxTokens,
+      });
+    });
+
     it('uses the existing fallback for missing component rates', () => {
       const profile = mapPiModelToProfile(
         makeInput({ provider: 'openai', id: 'gpt-5-mini' }),
