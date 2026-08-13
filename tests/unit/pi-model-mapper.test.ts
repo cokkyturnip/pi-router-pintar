@@ -401,6 +401,53 @@ describe('mapPiModelToProfile', () => {
     });
   });
 
+  describe('Plan B component pricing and Pi limits', () => {
+    it('retains separate normalized input and output rates', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({
+          provider: 'openai',
+          id: 'gpt-5.6-luna',
+          cost: {
+            input: 0.10 / 1_000_000,
+            output: 0.60 / 1_000_000,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        }),
+      );
+
+      expect(profile.pricing.input_rate_per_1m).toBeCloseTo(0.10);
+      expect(profile.pricing.output_rate_per_1m).toBeCloseTo(0.60);
+      expect(profile.pricing.fallback_cost_per_1m).toBeCloseTo(0.35);
+    });
+
+    it('carries Pi context and output limits into the profile', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({
+          provider: 'openai',
+          id: 'gpt-5.6-luna',
+          contextWindow: 1_000_000,
+          maxTokens: 16_384,
+        }),
+      );
+
+      expect(profile.limits).toEqual({
+        max_input_tokens: 1_000_000,
+        max_output_tokens: 16_384,
+      });
+    });
+
+    it('uses the existing fallback for missing component rates', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openai', id: 'gpt-5-mini' }),
+      );
+
+      expect(profile.pricing.input_rate_per_1m).toBeUndefined();
+      expect(profile.pricing.output_rate_per_1m).toBeUndefined();
+      expect(profile.pricing.fallback_cost_per_1m).toBe(0.8);
+    });
+  });
+
   describe('profile shape', () => {
     it('preserves input id and provider on mapped profile', () => {
       const profile = mapPiModelToProfile(
