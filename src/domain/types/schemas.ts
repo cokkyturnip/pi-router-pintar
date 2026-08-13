@@ -26,7 +26,22 @@ export const PinReasonSchema = z.enum([
   'compaction',
   'cache_economics',
   'context_overflow',
+  'complexity_upgrade',
+  'complexity_downgrade',
 ]);
+
+export const ComplexityScorerConfigSchema = z.object({
+  output_to_input_ratio: z.number().min(0).max(0.05).default(0.05),
+  upgrade_score_threshold: z.number().min(0).max(1).default(0.7),
+  downgrade_score_threshold: z.number().min(0).max(1).default(0.3),
+  confidence_threshold: z.number().min(0).max(1).default(0.6),
+  min_lightweight_streak: z.number().int().min(1).max(10).default(3),
+  min_dwell_ms: z.number().int().min(0).default(300_000),
+  capability_override_gap: z.number().min(0).max(1).default(0.15),
+});
+
+export type ComplexityScorerConfig = z.infer<typeof ComplexityScorerConfigSchema>;
+export const DEFAULT_COMPLEXITY_SCORER_CONFIG = ComplexityScorerConfigSchema.parse({});
 
 export const TierSchema = z.enum([
   'zero-tier',
@@ -663,6 +678,7 @@ export const OperatorConfigSchema = z.object({
   workload_heat: WorkloadHeatConfigSchema.optional(),
   /** Speculative prewarm with acceptance guard (SP-217, #117). Default off. */
   speculative_prewarm: SpeculativePrewarmConfigSchema.optional(),
+  complexity_scorer: ComplexityScorerConfigSchema.default(DEFAULT_COMPLEXITY_SCORER_CONFIG),
   /**
    * Emergency pin-on-first-turn fallback (#83, SP-161).
    * When true, subsequent turns use the session pin only — multi-stage routing
