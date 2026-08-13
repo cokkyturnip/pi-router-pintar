@@ -121,8 +121,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPMSECRET }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          if npm view "pi-smart-router@${VERSION}" version >/dev/null 2>&1; then
-            echo "pi-smart-router@${VERSION} already on npm; skipping publish"
+          if npm view "pi-router-pintar@${VERSION}" version >/dev/null 2>&1; then
+            echo "pi-router-pintar@${VERSION} already on npm; skipping publish"
           elif [[ "${{ steps.ref.outputs.tag }}" == *-* ]]; then
             npm publish --access public --ignore-scripts --tag beta
           else
@@ -134,7 +134,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.ref.outputs.tag }}"
-          ARGS=(--title "pi-smart-router ${TAG}" --generate-notes)
+          ARGS=(--title "pi-router-pintar ${TAG}" --generate-notes)
           if [[ "${TAG}" == *-* ]]; then
             ARGS+=(--prerelease)
           fi
