@@ -1,5 +1,7 @@
 # pi-smart-router
 
+> **Fork notice:** This is a fork of [`beettlle/pi-smart-router`](https://github.com/beettlle/pi-smart-router), published on npm as **`pi-router-pintar`** ("router pintar" = smart router in Indonesian). All credit for the original work goes to **beettlle**; this fork retains the MIT license and original copyright. Changes: reliable loop-escalation failure detection via `is_error`/`status`, and `gpt-5.5+` classified as `frontier-cloud`.
+
 **Auto-model router middleware for the [pi](https://pi.dev) coding agent.**
 
 > **v0.1.0** is initial development (SemVer `0.y.z`). The public API and routing behavior may change until `1.0.0`.

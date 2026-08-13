@@ -1,7 +1,7 @@
 {
-  "name": "pi-smart-router",
-  "version": "0.16.0",
-  "description": "Auto-model router middleware for the pi.dev coding agent",
+  "name": "pi-router-pintar",
+  "version": "0.16.1",
+  "description": "Fork of beettlle/pi-smart-router (Translate: pi-router-pintar). Auto-model router middleware for pi. Adds reliable loop-escalation failure detection via is_error/status and classifies gpt-5.5+ as frontier-cloud.",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -15,11 +15,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/beettlle/pi-smart-router.git"
+    "url": "git+https://github.com/cokkyturnip/pi-router-pintar.git"
   },
-  "homepage": "https://github.com/beettlle/pi-smart-router#readme",
+  "homepage": "https://github.com/cokkyturnip/pi-router-pintar#readme",
   "bugs": {
-    "url": "https://github.com/beettlle/pi-smart-router/issues"
+    "url": "https://github.com/cokkyturnip/pi-router-pintar/issues"
   },
   "engines": {
     "node": ">=22"
