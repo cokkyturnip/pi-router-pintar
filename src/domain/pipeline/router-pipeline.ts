@@ -1116,9 +1116,13 @@ export class RouterPipeline {
             ? 'saar_hard_lock'
             : result.saarReason === 'saar_tier_upgrade'
               ? 'saar_tier_upgrade'
-              : this.isPinOnlyFallbackActive(request)
-                ? 'pin_only_fallback'
-                : 'session_pinned';
+              : pin?.pin_reason === 'complexity_upgrade'
+                ? 'complexity_upgrade'
+                : pin?.pin_reason === 'complexity_downgrade'
+                  ? 'complexity_downgrade'
+                  : this.isPinOnlyFallbackActive(request)
+                    ? 'pin_only_fallback'
+                    : 'session_pinned';
         return {
           decided: true,
           stage: 'session_pin',
@@ -1248,6 +1252,11 @@ export class RouterPipeline {
     if (decision.reason_code === 'pin_only_fallback') return;
     if (decision.reason_code === 'saar_buffer_active') return;
     if (decision.reason_code === 'saar_hard_lock') return;
+    // Complexity switches are already persisted by SessionPinner.recordPin()
+    // inside evaluateComplexitySwitch(); persisting again would downgrade the
+    // reason to 'initial' and mask the audit trail.
+    if (decision.reason_code === 'complexity_upgrade') return;
+    if (decision.reason_code === 'complexity_downgrade') return;
     // SP-209 / #121: a rejected force must not overwrite the existing pin — the
     // one-shot override simply could not be applied.
     if (decision.reason_code === FORCE_REJECTED_NOT_IN_FLEET) return;

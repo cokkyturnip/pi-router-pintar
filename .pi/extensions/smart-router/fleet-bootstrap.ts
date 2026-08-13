@@ -276,6 +276,8 @@ export function createOperatorAwareSessionPinner(
     store,
     saarConfig: operatorConfig.saar,
     pinOnlyFallback: operatorConfig.pin_only_fallback,
+    complexityScorerConfig: operatorConfig.complexity_scorer,
+    complexityClock: () => Date.now(),
   });
 }
 

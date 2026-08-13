@@ -885,6 +885,48 @@ describe('Pi extension integration (SP-043)', () => {
       expect(['use_pin', 'sub_route']).toContain(defaultDecision.action);
     });
 
+    it('createOperatorAwareSessionPinner applies complexity scorer config', () => {
+      const store = new MemoryStore([]);
+      const loosePinner = createOperatorAwareSessionPinner(store, {
+        ...DEFAULT_OPERATOR_CONFIG,
+        complexity_scorer: {
+          ...DEFAULT_OPERATOR_CONFIG.complexity_scorer,
+          upgrade_score_threshold: 0.1,
+          confidence_threshold: 0.0,
+        },
+      });
+
+      // Give the frontier model a clear capability advantage so the upgrade is
+      // justified (capability override) even though it is more expensive per
+      // token — otherwise the KV-cache breakeven gate correctly blocks it.
+      const fleet = mapFleetFromRegistry(REGISTRY_MODELS).map((model) =>
+        model.id === 'claude-3.5-sonnet'
+          ? {
+              ...model,
+              capabilities: { reasoning: 0.95, code_gen: 0.95, tool_use: 0.95 },
+            }
+          : model,
+      );
+      const econId = fleet.find((m) => m.tier === 'economical-cloud')!.id;
+      loosePinner.recordPin('sess-complexity', econId, 'initial');
+
+      // A modest request that would not upgrade under the default 0.7 threshold
+      // should upgrade when the operator lowers the threshold.
+      const result = loosePinner.lookupPin(
+        {
+          request_id: 'req-complexity',
+          session_id: 'sess-complexity',
+          prompt_text: 'Refactor this architecture and write tests for the race condition',
+          estimated_input_tokens: 40_000,
+        },
+        fleet,
+      );
+
+      expect(result.action).toBe('use_pin');
+      expect(result.pinnedModel?.tier).toBe('frontier-cloud');
+      expect(loosePinner.getPin('sess-complexity')?.pin_reason).toBe('complexity_upgrade');
+    });
+
     it('omits rateLimiter when the extension store is not SQLite-backed', () => {
       const sessionPinner = new SessionPinner();
       const memoryStore = new MemoryStore([]);

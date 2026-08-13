@@ -177,6 +177,44 @@ describe('RouterPipeline', () => {
       expect(decision.pin_reason).toBe('initial');
     });
 
+    it('maps a complexity_upgrade pin to a complexity reason code, not session_pinned', async () => {
+      const pinner = new SessionPinner();
+      pinner.recordPin('sess-1', 'frontier-a', 'complexity_upgrade');
+
+      const pipeline = new RouterPipeline(pinFleet, { sessionPinner: pinner });
+      const decision = await pipeline.route(makeRequest());
+
+      expect(decision.stage).toBe('session_pin');
+      expect(decision.reason_code).toBe('complexity_upgrade');
+      expect(decision.selected_model_id).toBe('frontier-a');
+      expect(decision.pin_reason).toBe('complexity_upgrade');
+    });
+
+    it('maps a complexity_downgrade pin to a complexity reason code', async () => {
+      const pinner = new SessionPinner();
+      pinner.recordPin('sess-1', 'econ-a', 'complexity_downgrade');
+
+      const pipeline = new RouterPipeline(pinFleet, { sessionPinner: pinner });
+      const decision = await pipeline.route(makeRequest());
+
+      expect(decision.reason_code).toBe('complexity_downgrade');
+      expect(decision.pin_reason).toBe('complexity_downgrade');
+    });
+
+    it('persistPinIfNeeded does not overwrite an existing complexity pin with initial', async () => {
+      const pinner = new SessionPinner();
+      pinner.recordPin('sess-1', 'frontier-a', 'complexity_upgrade');
+
+      const pipeline = new RouterPipeline(pinFleet, { sessionPinner: pinner });
+      const decision = await pipeline.route(makeRequest());
+
+      expect(decision.stage).toBe('session_pin');
+      const pin = pinner.getPin('sess-1');
+      expect(pin).not.toBeNull();
+      expect(pin!.pinned_model_id).toBe('frontier-a');
+      expect(pin!.pin_reason).toBe('complexity_upgrade');
+    });
+
     it('persistPinIfNeeded records a pin after fallback routing', async () => {
       const pinner = new SessionPinner();
       const pipeline = new RouterPipeline(pinFleet, { sessionPinner: pinner });
