@@ -51,6 +51,8 @@ export interface CreateDispatchOptionsExtras {
 
 /** Max telemetry rows scanned for the quota-window burn estimate (SP-214). */
 const QUOTA_FEED_TELEMETRY_LIMIT = 5000;
+const SMART_ROUTER_PROVIDER = 'smart-router';
+const SMART_ROUTER_AUTO_MODEL_ID = 'auto';
 
 export interface ResolveQuotaWindowFeedDeps {
   /** Optional provider adapter (degrade chain step 1). */
@@ -204,7 +206,13 @@ export async function discoverFleet(
     }
   }
 
-  const mappedFleet = mapFleetFromRegistry(registryModelsToFleetInput(models));
+  // The virtual router model must remain selectable in Pi's scoped model list,
+  // but it cannot be a delegation target for its own routing pipeline.
+  const delegationModels = models.filter(
+    (model) =>
+      model.provider !== SMART_ROUTER_PROVIDER || model.id !== SMART_ROUTER_AUTO_MODEL_ID,
+  );
+  const mappedFleet = mapFleetFromRegistry(registryModelsToFleetInput(delegationModels));
   const catalog = await store.getPriceCatalog();
   const fleet = applyCatalogPricesToFleet(mappedFleet, catalog);
 
