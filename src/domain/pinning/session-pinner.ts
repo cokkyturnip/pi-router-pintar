@@ -26,7 +26,12 @@ import type {
   Tier,
 } from '../types/index.js';
 import type { QuotaWindowPosition } from '../types/entities.js';
-import { DEFAULT_SAAR_CONFIG, type VirtualCostV2Config } from '../types/schemas.js';
+import {
+  ComplexityScorerConfigSchema,
+  DEFAULT_SAAR_CONFIG,
+  type ComplexityScorerConfig,
+  type VirtualCostV2Config,
+} from '../types/schemas.js';
 import type { StorePort } from '../types/store-port.js';
 import { resolveFrugalityCostPer1M } from '../../infrastructure/pricing/price-broker.js';
 import {
@@ -47,6 +52,10 @@ import {
   type FlipFlopSessionState,
 } from './flip-flop-guard.js';
 import { SaarSessionStateTracker } from './saar-session-state.js';
+import {
+  scoreComplexity,
+  type ComplexityScore,
+} from '../routing/complexity-scorer.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -114,6 +123,10 @@ export interface SessionPinnerConfig {
   readonly contextOverflowSafetyMargin?: number;
   /** Flip-flop tier pin guard (SP-155, #82). Injectable for tests. */
   readonly flipFlopGuard?: FlipFlopGuard;
+  /** Deterministic per-request complexity switching configuration. */
+  readonly complexityScorerConfig?: ComplexityScorerConfig;
+  /** Injectable clock for complexity dwell tests. */
+  readonly complexityClock?: () => number;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -342,6 +355,9 @@ export class SessionPinner {
   private readonly contextOverflowSafetyMargin: number;
   private lastFleet: readonly ModelProfile[] | undefined;
   private lastFlipFlopObservation: FlipFlopObservation | null = null;
+  private readonly complexityScorerConfig: ComplexityScorerConfig;
+  private readonly complexityClock: () => number;
+  private readonly lightweightStreaks = new Map<string, number>();
 
   constructor(config?: SessionPinnerConfig) {
     this.toolResultSizeThreshold =
@@ -354,6 +370,10 @@ export class SessionPinner {
     this.contextOverflowSafetyMargin =
       config?.contextOverflowSafetyMargin ?? DEFAULT_CONTEXT_OVERFLOW_SAFETY_MARGIN;
     this.flipFlopGuard = config?.flipFlopGuard ?? new FlipFlopGuard();
+    this.complexityScorerConfig = ComplexityScorerConfigSchema.parse(
+      config?.complexityScorerConfig ?? {},
+    );
+    this.complexityClock = config?.complexityClock ?? Date.now;
   }
 
   /**
@@ -442,6 +462,11 @@ export class SessionPinner {
 
     // ── Sub-routing (FR-024) ────────────────────────────────────────────────
 
+    const complexityResult = this.evaluateComplexitySwitch(request, pin, fleet);
+    if (complexityResult) {
+      return complexityResult;
+    }
+
     const subRouteResult = this.evaluateSubRouting(request, pin, fleet);
     if (subRouteResult) {
       return subRouteResult;
@@ -487,6 +512,9 @@ export class SessionPinner {
     };
 
     this.pins.set(sessionId, pin);
+    if (!existing || existing.pinned_model_id !== modelId) {
+      this.lightweightStreaks.delete(sessionId);
+    }
     this.persistPin(pin);
     return pin;
   }
@@ -496,6 +524,7 @@ export class SessionPinner {
    */
   breakPin(sessionId: string): void {
     this.pins.delete(sessionId);
+    this.lightweightStreaks.delete(sessionId);
     this.saarTrackers.delete(sessionId);
     this.flipFlopGuard.clearSession(sessionId);
     this.deletePersistedPin(sessionId);
@@ -881,6 +910,110 @@ export class SessionPinner {
         : FORCE_REJECTED_NOT_IN_FLEET,
       forceModelId,
     };
+  }
+
+  // ─── Complexity switching (Plan B) ────────────────────────────────────────
+
+  private evaluateComplexitySwitch(
+    request: RoutingRequest,
+    pin: SessionPin,
+    fleet: readonly ModelProfile[],
+  ): PinLookupResult | null {
+    // Tool results remain temporary sub-routing only and never change the pin.
+    if (request.turn_type === 'tool_result') {
+      return null;
+    }
+
+    const pinnedModel = fleet.find(
+      (model) => model.id === pin.pinned_model_id && model.healthy !== false,
+    );
+    if (!pinnedModel) {
+      return null;
+    }
+
+    const score: ComplexityScore = scoreComplexity({
+      request,
+      pinnedModel,
+      fleet,
+      config: this.complexityScorerConfig,
+    });
+
+    if (score.targetTier === 'frontier-cloud') {
+      this.lightweightStreaks.delete(request.session_id);
+      const candidate = fleet.find(
+        (model) => model.id === score.candidate_model_id && model.healthy !== false,
+      );
+      if (!candidate || this.isFlipFlopTierChangeBlocked(request.session_id, candidate.tier)) {
+        return null;
+      }
+
+      const tokenEstimate =
+        request.estimated_input_tokens ?? request.prompt_text.length;
+      const breakeven = evaluateModelSwitchBreakeven(
+        pinnedModel,
+        candidate,
+        tokenEstimate,
+        tokenEstimate,
+        this.saarConfig,
+      );
+      const candidateWindow = candidate.limits?.max_input_tokens;
+      const pinnedWindow = pinnedModel.limits?.max_input_tokens;
+      const imminentWindowPressure =
+        pinnedWindow !== undefined &&
+        candidateWindow !== undefined &&
+        candidateWindow > pinnedWindow &&
+        tokenEstimate > pinnedWindow * this.contextOverflowSafetyMargin;
+      const capabilityOverride =
+        score.capability_gap >= this.complexityScorerConfig.capability_override_gap;
+
+      if (!breakeven.shouldSwitch && !capabilityOverride && !imminentWindowPressure) {
+        return null;
+      }
+
+      this.recordPin(request.session_id, candidate.id, 'complexity_upgrade');
+      return { action: 'use_pin', pinnedModel: candidate };
+    }
+
+    if (score.targetTier !== 'economical-cloud') {
+      this.lightweightStreaks.delete(request.session_id);
+      return null;
+    }
+
+    const streak = (this.lightweightStreaks.get(request.session_id) ?? 0) + 1;
+    this.lightweightStreaks.set(request.session_id, streak);
+    if (streak < this.complexityScorerConfig.min_lightweight_streak) {
+      return null;
+    }
+
+    const dwellStartedAt = Date.parse(pin.updated_at);
+    if (
+      !Number.isFinite(dwellStartedAt) ||
+      this.complexityClock() - dwellStartedAt < this.complexityScorerConfig.min_dwell_ms
+    ) {
+      return null;
+    }
+
+    const candidate = fleet.find(
+      (model) => model.id === score.candidate_model_id && model.healthy !== false,
+    );
+    if (!candidate || this.isFlipFlopTierChangeBlocked(request.session_id, candidate.tier)) {
+      return null;
+    }
+
+    const tokenEstimate = request.estimated_input_tokens ?? request.prompt_text.length;
+    const breakeven = evaluateModelSwitchBreakeven(
+      pinnedModel,
+      candidate,
+      tokenEstimate,
+      tokenEstimate,
+      this.saarConfig,
+    );
+    if (!breakeven.shouldSwitch) {
+      return null;
+    }
+
+    this.recordPin(request.session_id, candidate.id, 'complexity_downgrade');
+    return { action: 'use_pin', pinnedModel: candidate };
   }
 
   // ─── Persistence (StorePort) ────────────────────────────────────────────────
