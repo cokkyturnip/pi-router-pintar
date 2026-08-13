@@ -161,4 +161,3 @@ describe('complexity scorer', () => {
     expect(result.reasons).toContain('no_suitable_candidate');
   });
 });
-
