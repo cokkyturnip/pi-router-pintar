@@ -16,8 +16,6 @@ Logic changes relative to [`beettlle/pi-smart-router`](https://github.com/beettl
 | **Plan B complexity re-scoring** | Deterministic per-request complexity scoring allows justified bidirectional economical ↔ frontier switching mid-session while preserving KV-cache economics; includes complexity-aware session pins and pipeline wiring | v0.17.0 |
 | **Real context window sync** | The registered `auto` model entry is re-synced with the delegated model's real `contextWindow`/`maxTokens` after each routing decision (deduped per change), so pi's footer context percentage and compaction threshold follow the model actually selected instead of a hardcoded `200k` | 0.17.1 |
 
-> The 0.17.1 entry lands on the `fix/auto-model-context-window` branch and is pending merge into `main`.
-
 **Auto-model router middleware for the [pi](https://pi.dev) coding agent.**
 
 > **v0.1.0** is initial development (SemVer `0.y.z`). The public API and routing behavior may change until `1.0.0`.

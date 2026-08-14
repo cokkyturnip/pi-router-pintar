@@ -4,15 +4,14 @@ All notable changes to **pi-router-pintar** — the fork of
 [`beettlle/pi-smart-router`](https://github.com/beettlle/pi-smart-router) published to npm —
 are documented here. Versions follow SemVer (`0.y.z`).
 
-## [0.17.1] - Unreleased
+## [0.17.1] - 2026-08-13
 
 ### Fixed
 - The registered `smart-router/auto` model entry now syncs the delegated model's real
   `contextWindow`/`maxTokens` after each successful routing decision (deduped per change)
   and restores them from the execution ledger on session resume. Pi's footer context
   percentage and the auto-compaction threshold (`contextWindow − reserveTokens`) now
-  follow the model actually selected by the router instead of a hardcoded `200k`/`16k`
-  (`fix/auto-model-context-window`).
+  follow the model actually selected by the router instead of a hardcoded `200k`/`16k`.
 
 ## [0.17.0] - 2026-08-13
 

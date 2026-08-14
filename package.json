@@ -1,6 +1,6 @@
 {
   "name": "pi-router-pintar",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Fork of beettlle/pi-smart-router (Translate: pi-router-pintar). Auto-model router middleware for pi. Adds reliable loop-escalation failure detection via is_error/status and classifies gpt-5.5+ as frontier-cloud.",
   "type": "module",
   "license": "MIT",
