@@ -4,6 +4,16 @@ All notable changes to **pi-router-pintar** — the fork of
 [`beettlle/pi-smart-router`](https://github.com/beettlle/pi-smart-router) published to npm —
 are documented here. Versions follow SemVer (`0.y.z`).
 
+## [0.17.2] - Unreleased
+
+### Fixed
+- Re-registration of the `smart-router/auto` entry now carries the provider's
+  `api`/`baseUrl` fields on every call. Pi validates the raw registration config
+  before merging, so a models-only re-registration threw `no "api" specified`
+  and silently skipped the footer context-window sync (footer stayed at `200k`
+  even though routing was active). Registration failures are also surfaced via
+  `console.error` instead of failing the routed request.
+
 ## [0.17.1] - 2026-08-13
 
 ### Fixed
