@@ -4,7 +4,7 @@ All notable changes to **pi-router-pintar** — the fork of
 [`beettlle/pi-smart-router`](https://github.com/beettlle/pi-smart-router) published to npm —
 are documented here. Versions follow SemVer (`0.y.z`).
 
-## [0.17.2] - Unreleased
+## [0.17.2] - 2026-08-14
 
 ### Fixed
 - Re-registration of the `smart-router/auto` entry now carries the provider's
