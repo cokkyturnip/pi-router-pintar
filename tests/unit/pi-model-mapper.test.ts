@@ -293,6 +293,242 @@ describe('mapPiModelToProfile', () => {
     });
   });
 
+  describe('DeepSeek family', () => {
+    it('maps deepseek-v4-pro to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'deepseek-v4-pro' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps deepseek-v4-flash to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'deepseek-v4-flash' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps deepseek-v4-flash-free to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'deepseek-v4-flash-free' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+  });
+
+  describe('Qwen family', () => {
+    it('maps qwen3.7-max to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'qwen/qwen3.7-max' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps qwen3.8-max to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'qwen3.8-max' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps qwen3.5-plus to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'qwen3.5-plus' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps qwen3.6-plus to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'qwen3.6-plus' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps qwen flash variant to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'qwen/qwen3-flash' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps qwen without tier keyword to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'qwen/qwen3.8-2.4t-a95b' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+  });
+
+  describe('Grok family', () => {
+    it('maps grok-4.6 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'grok-4.6' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps grok-4.5 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'grok-4.5' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps grok-build-0.1 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'grok-build-0.1' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps x-ai grok-latest to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: '~x-ai/grok-latest' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+  });
+
+  describe('Kimi family', () => {
+    it('maps kimi-k3 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'kimi-k3' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps kimi-k2.7-code to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'kimi-k2.7-code' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps kimi-k2.5 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'opencode', id: 'kimi-k2.5' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps moonshot kimi-latest to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: '~moonshotai/kimi-latest' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+  });
+
+  describe('Mistral family', () => {
+    it('maps mistral-large to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'mistral-large-latest' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps codestral to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'codestral-latest' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps pixtral-large to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'pixtral-large-latest' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps mistral-medium to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'mistral-medium-latest' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps mistral-small to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'mistral-small-latest' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps devstral to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'devstral-latest' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps ministral to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'mistral', id: 'ministral-8b-latest' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+  });
+
+  describe('GLM family', () => {
+    it('maps glm-5 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-5' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps glm-5.2 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-5.2' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps glm-5-turbo to frontier tier (premium pricing)', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-5-turbo' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps glm-4.7 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-4.7' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps glm-4.6 to frontier tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-4.6' }),
+      );
+      expect(profile.tier).toBe('frontier-cloud');
+    });
+
+    it('maps glm-4.7-flash to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-4.7-flash' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps glm-4.5 to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-4.5' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+
+    it('maps glm-4.5-air to economical tier', () => {
+      const profile = mapPiModelToProfile(
+        makeInput({ provider: 'openrouter', id: 'z-ai/glm-4.5-air' }),
+      );
+      expect(profile.tier).toBe('economical-cloud');
+    });
+  });
+
   describe('unknown models', () => {
     it('assigns conservative economical-cloud defaults', () => {
       const profile = mapPiModelToProfile(

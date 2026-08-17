@@ -336,6 +336,25 @@ const MODEL_PATTERN_RULES: readonly ModelPatternRule[] = [
   { pattern: /gemini[-_.]?3.*pro/i, defaults: FRONTIER_DEFAULTS },
   { pattern: /gemini.*pro/i, defaults: FRONTIER_DEFAULTS },
   { pattern: /gemini.*flash|gemini-flash/i, defaults: ECONOMICAL_DEFAULTS },
+  // DeepSeek family (opencode / openrouter)
+  { pattern: /deepseek.*pro/i, defaults: FRONTIER_DEFAULTS },
+  { pattern: /deepseek/i, defaults: ECONOMICAL_DEFAULTS },
+  // Qwen family (opencode / openrouter)
+  { pattern: /qwen.*(max|plus)/i, defaults: FRONTIER_DEFAULTS },
+  { pattern: /qwen.*flash/i, defaults: ECONOMICAL_DEFAULTS },
+  { pattern: /qwen/i, defaults: ECONOMICAL_DEFAULTS },
+  // Grok family (xAI)
+  { pattern: /grok/i, defaults: FRONTIER_DEFAULTS },
+  // Kimi family (Moonshot AI)
+  { pattern: /kimi/i, defaults: FRONTIER_DEFAULTS },
+  // Mistral family
+  { pattern: /codestral|mistral.*large|pixtral.*large/i, defaults: FRONTIER_DEFAULTS },
+  { pattern: /mistral|mixtral|ministral|magistral|pixtral|voxtral|devstral/i, defaults: ECONOMICAL_DEFAULTS },
+  // GLM family (Zhipu) — turbo & 4.6+ are premium; flash/air/batch are economical
+  { pattern: /glm.*(flash|air|batch)/i, defaults: ECONOMICAL_DEFAULTS },
+  { pattern: /glm.*turbo/i, defaults: FRONTIER_DEFAULTS },
+  { pattern: /glm[-_.]?5|glm[-_.]?4\.[6-9]/i, defaults: FRONTIER_DEFAULTS },
+  { pattern: /glm/i, defaults: ECONOMICAL_DEFAULTS },
   { pattern: /^composer[-_]/i, defaults: COMPOSER_DEFAULTS },
   { pattern: /^cursor\//i, defaults: CURSOR_AUTO_DEFAULTS },
 ];
