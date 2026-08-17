@@ -27,3 +27,7 @@ coverage/
 
 # Cusor 
 .cursor/
+
+# Agent context files (personal — not part of the package)
+AGENTS.md
+CLAUDE.md
